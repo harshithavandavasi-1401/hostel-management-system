@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Worker Dashboard</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+
+<body class="bg-light">
+
+<!-- NAVBAR -->
+<nav class="navbar navbar-dark bg-success px-3 shadow">
+    <span class="navbar-brand">Worker Dashboard</span>
+    <a href="/logout" class="btn btn-light">Logout</a>
+</nav>
+
+<div class="container mt-4">
+
+<h4 class="mb-3">🛠 Assigned Complaints</h4>
+
+<div class="card shadow">
+<div class="card-body">
+
+<div class="table-responsive">
+
+<table class="table table-bordered table-hover">
+
+<thead class="table-dark">
+<tr>
+<th>Name</th>
+<th>Room</th>
+<th>Issue</th>
+<th>Status</th>
+<th>Action</th>
+</tr>
+</thead>
+
+<tbody>
+
+{% for d in data %}
+<tr>
+
+<td>{{ d[6] }}</td>   <!-- student_name -->
+<td>{{ d[3] }}</td>   <!-- room -->
+<td>{{ d[1] }}</td>   <!-- issue -->
+
+<td>
+<span class="badge bg-danger">Pending</span>
+</td>
+
+<td>
+<a href="/resolve/{{ d[0] }}" class="btn btn-success btn-sm">Mark Done</a>
+</td>
+
+</tr>
+{% endfor %}
+
+</tbody>
+
+</table>
+
+</div>
+
+</div>
+</div>
+
+</div>
+
+</body>
+</html>
