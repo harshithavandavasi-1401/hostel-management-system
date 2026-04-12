@@ -63,8 +63,7 @@ def login():
             session['role'] = 'worker'
             return redirect('/worker')
 
-    return "❌ Invalid Login"
-
+    return render_template('login.html', error="User not found or incorrect password")
 
 # ---------------- REGISTER ----------------
 @app.route('/register', methods=['GET', 'POST'])
@@ -133,6 +132,15 @@ def submit_complaint():
     db.commit()
     return redirect('/student')
 
+# ---------------- DELETE COMPLAINT ----------------
+@app.route('/delete_complaint/<int:complaint_id>')
+def delete_complaint(complaint_id):
+    cursor.execute("""
+        DELETE FROM helpdesk 
+        WHERE complaint_id=%s AND status='resolved'
+    """, (complaint_id,))
+    db.commit()
+    return redirect('/warden')
 
 # ---------------- RESOLVE ----------------
 @app.route('/resolve/<int:complaint_id>')
