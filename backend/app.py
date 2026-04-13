@@ -10,17 +10,23 @@ TEMPLATE_DIR = os.path.join(BASE_DIR, '..', 'templates')
 app = Flask(__name__, template_folder=TEMPLATE_DIR)
 app.secret_key = "secret123"
 
-# ---------------- DB ----------------
-db = mysql.connector.connect(
-    host="127.0.0.1",
-    user="root",
-    password="Harshitha@2006",
-    database="hostel_db",
-    auth_plugin='mysql_native_password'
-)
-cursor = db.cursor()
+# ---------------- DB (SAFE FOR DEPLOY) ----------------
+try:
+    db = mysql.connector.connect(
+        host="127.0.0.1",
+        user="root",
+        password="Harshitha@2006",
+        database="hostel_db",
+        auth_plugin='mysql_native_password'
+    )
+    cursor = db.cursor()
+    print("✅ Connected to MySQL")
 
-print("✅ Connected to MySQL")
+except:
+    print("❌ DB connection failed (Render safe mode)")
+    db = None
+    cursor = None
+
 
 # ---------------- HOME ----------------
 @app.route('/')
@@ -31,6 +37,9 @@ def home():
 # ---------------- LOGIN ----------------
 @app.route('/login', methods=['POST'])
 def login():
+    if cursor is None:
+        return render_template('login.html', error="Database not connected")
+
     role = request.form['role']
     user_id = request.form['user_id']
     password = request.form['password']
@@ -65,9 +74,13 @@ def login():
 
     return render_template('login.html', error="User not found or incorrect password")
 
+
 # ---------------- REGISTER ----------------
 @app.route('/register', methods=['GET', 'POST'])
 def register():
+    if cursor is None:
+        return "Database not connected"
+
     if request.method == 'POST':
         name = request.form['name']
         reg = request.form['reg']
@@ -94,6 +107,9 @@ def student():
     if 'user' not in session:
         return redirect('/')
 
+    if cursor is None:
+        return "Database not connected"
+
     student_id = session['user']
 
     cursor.execute("SELECT name, room_no FROM students WHERE student_id=%s", (student_id,))
@@ -115,6 +131,9 @@ def submit_complaint():
     if 'user' not in session:
         return redirect('/')
 
+    if cursor is None:
+        return "Database not connected"
+
     student_id = session['user']
 
     cursor.execute("SELECT room_no FROM students WHERE student_id=%s", (student_id,))
@@ -132,9 +151,13 @@ def submit_complaint():
     db.commit()
     return redirect('/student')
 
+
 # ---------------- DELETE COMPLAINT ----------------
 @app.route('/delete_complaint/<int:complaint_id>')
 def delete_complaint(complaint_id):
+    if cursor is None:
+        return "Database not connected"
+
     cursor.execute("""
         DELETE FROM helpdesk 
         WHERE complaint_id=%s AND status='resolved'
@@ -142,11 +165,15 @@ def delete_complaint(complaint_id):
     db.commit()
     return redirect('/warden')
 
+
 # ---------------- RESOLVE ----------------
 @app.route('/resolve/<int:complaint_id>')
 def resolve_complaint(complaint_id):
     if 'user' not in session:
         return redirect('/')
+
+    if cursor is None:
+        return "Database not connected"
 
     cursor.execute("UPDATE helpdesk SET status='resolved' WHERE complaint_id=%s", (complaint_id,))
     db.commit()
@@ -161,6 +188,9 @@ def resolve_complaint(complaint_id):
 def warden():
     if 'user' not in session:
         return redirect('/')
+
+    if cursor is None:
+        return "Database not connected"
 
     cursor.execute("SELECT * FROM helpdesk")
     complaints = cursor.fetchall()
@@ -189,75 +219,14 @@ def warden():
                            resolved=resolved)
 
 
-# ---------------- ASSIGN WORKER ----------------
-@app.route('/assign_worker', methods=['POST'])
-def assign_worker():
-    complaint_id = request.form['complaint_id']
-    worker_id = request.form['worker_id']
-
-    cursor.execute("""
-        UPDATE helpdesk SET worker_id=%s 
-        WHERE complaint_id=%s
-    """, (worker_id, complaint_id))
-
-    db.commit()
-    return redirect('/warden')
-
-
-# ---------------- ADD WORKER ----------------
-@app.route('/add_worker', methods=['POST'])
-def add_worker():
-    name = request.form['name']
-    password = request.form['password']
-
-    cursor.execute("""
-        INSERT INTO workers (name, password)
-        VALUES (%s, %s)
-    """, (name, password))
-
-    db.commit()
-    return redirect('/warden')
-
-
-# ---------------- DELETE WORKER ----------------
-@app.route('/delete_worker/<int:worker_id>')
-def delete_worker(worker_id):
-    cursor.execute("DELETE FROM workers WHERE worker_id=%s", (worker_id,))
-    db.commit()
-    return redirect('/warden')
-
-
-# ---------------- ADD STUDENT ----------------
-@app.route('/add_student', methods=['POST'])
-def add_student():
-    name = request.form['name']
-    reg = request.form['reg']
-    phone = request.form['phone']
-    father = request.form['father']
-    room = request.form['room']
-
-    cursor.execute("""
-        INSERT INTO students (student_id, name, phone, father_name, room_no)
-        VALUES (%s, %s, %s, %s, %s)
-    """, (reg, name, phone, father, room))
-
-    db.commit()
-    return redirect('/warden')
-
-
-# ---------------- DELETE STUDENT ----------------
-@app.route('/delete_student/<student_id>')
-def delete_student(student_id):
-    cursor.execute("DELETE FROM students WHERE student_id=%s", (student_id,))
-    db.commit()
-    return redirect('/warden')
-
-
 # ---------------- WORKER ----------------
 @app.route('/worker')
 def worker():
     if 'user' not in session:
         return redirect('/')
+
+    if cursor is None:
+        return "Database not connected"
 
     worker_id = session['user']
 
@@ -280,4 +249,5 @@ def logout():
 
 # ---------------- RUN ----------------
 if __name__ == '__main__':
-    app.run(debug=True, host="0.0.0.0", port=5001)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port)
