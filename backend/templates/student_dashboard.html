@@ -21,15 +21,13 @@
 
 <form action="/submit_complaint" method="POST">
 
-<!-- AUTO-FILLED (READONLY) -->
+<!-- AUTO-FILLED -->
 <input class="form-control mb-2" value="{{ student_name }}" readonly>
 <input class="form-control mb-2" value="{{ student_id }}" readonly>
 <input class="form-control mb-2" value="{{ room_no }}" readonly>
 
-<!-- HIDDEN VALUES (for backend) -->
+<!-- HIDDEN VALUES -->
 <input type="hidden" name="student_name" value="{{ student_name }}">
-<input type="hidden" name="student_id" value="{{ student_id }}">
-<input type="hidden" name="room_no" value="{{ room_no }}">
 
 <!-- ISSUE -->
 <select class="form-control mb-3" name="issue_type" required>
@@ -68,7 +66,7 @@
 <td>{{ c[1] }}</td>   <!-- issue_type -->
 
 <td>
-{% if c[5] == 'pending' %}
+{% if c[6] == 'pending' %}
 <span class="badge bg-danger">Pending</span>
 {% else %}
 <span class="badge bg-success">Resolved</span>

@@ -51,14 +51,12 @@ CREATE TABLE IF NOT EXISTS helpdesk (
 
 # default users
 cursor.execute("INSERT OR IGNORE INTO wardens VALUES ('1','123')")
-cursor.execute("INSERT OR IGNORE INTO workers VALUES ('1','123')")
 db.commit()
 
 # ---------------- HOME ----------------
 @app.route('/')
 def home():
     return render_template('login.html')
-
 
 # ---------------- LOGIN ----------------
 @app.route('/login', methods=['POST'])
@@ -67,7 +65,6 @@ def login():
     user_id = request.form['user_id']
     password = request.form['password']
 
-    # -------- STUDENT --------
     if role == 'student':
         cursor.execute("SELECT * FROM students WHERE student_id=?", (user_id,))
         user = cursor.fetchone()
@@ -90,7 +87,6 @@ def login():
                     session['role'] = 'student'
                     return redirect('/student')
 
-    # -------- WARDEN --------
     elif role == 'warden':
         cursor.execute("SELECT * FROM wardens WHERE warden_id=? AND password=?", (user_id, password))
         if cursor.fetchone():
@@ -98,7 +94,6 @@ def login():
             session['role'] = 'warden'
             return redirect('/warden')
 
-    # -------- WORKER --------
     elif role == 'worker':
         cursor.execute("SELECT * FROM workers WHERE worker_id=? AND password=?", (user_id, password))
         if cursor.fetchone():
@@ -107,6 +102,37 @@ def login():
             return redirect('/worker')
 
     return render_template('login.html', error="Invalid credentials")
+
+
+# ---------------- ADD STUDENT ----------------
+@app.route('/add_student', methods=['POST'])
+def add_student():
+    cursor.execute("""
+    INSERT INTO students (student_id, name, phone, room_no, password)
+    VALUES (?, ?, ?, ?, ?)
+    """, (
+        request.form['student_id'],
+        request.form['name'],
+        request.form['phone'],
+        request.form['room'],
+        request.form['password']
+    ))
+    db.commit()
+    return redirect('/warden')
+
+
+# ---------------- ADD WORKER ----------------
+@app.route('/add_worker', methods=['POST'])
+def add_worker():
+    cursor.execute("""
+    INSERT INTO workers (worker_id, password)
+    VALUES (?, ?)
+    """, (
+        request.form['worker_id'],
+        request.form['password']
+    ))
+    db.commit()
+    return redirect('/warden')
 
 
 # ---------------- REGISTER ----------------
@@ -143,9 +169,6 @@ def student():
     cursor.execute("SELECT name, room_no FROM students WHERE student_id=?", (sid,))
     student = cursor.fetchone()
 
-    if not student:
-        return redirect('/')
-
     cursor.execute("SELECT * FROM helpdesk WHERE student_id=?", (sid,))
     complaints = cursor.fetchall()
 
@@ -159,18 +182,10 @@ def student():
 # ---------------- SUBMIT ----------------
 @app.route('/submit_complaint', methods=['POST'])
 def submit():
-    if 'user' not in session:
-        return redirect('/')
-
     sid = session['user']
 
     cursor.execute("SELECT room_no FROM students WHERE student_id=?", (sid,))
-    data = cursor.fetchone()
-
-    if not data:
-        return redirect('/')
-
-    room = data[0]
+    room = cursor.fetchone()[0]
 
     cursor.execute("""
     INSERT INTO helpdesk (issue_type, description, room_no, student_id, student_name, status)
@@ -191,9 +206,6 @@ def submit():
 # ---------------- WARDEN ----------------
 @app.route('/warden')
 def warden():
-    if 'user' not in session:
-        return redirect('/')
-
     cursor.execute("SELECT * FROM helpdesk")
     complaints = cursor.fetchall()
 
@@ -216,12 +228,8 @@ def warden():
 # ---------------- WORKER ----------------
 @app.route('/worker')
 def worker():
-    if 'user' not in session:
-        return redirect('/')
-
     cursor.execute("SELECT * FROM helpdesk WHERE status='pending'")
     data = cursor.fetchall()
-
     return render_template('worker_dashboard.html', data=data)
 
 

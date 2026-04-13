@@ -39,16 +39,24 @@
 {% for d in data %}
 <tr>
 
-<td>{{ d[6] }}</td>   <!-- student_name -->
+<td>{{ d[5] }}</td>   <!-- student_name -->
 <td>{{ d[3] }}</td>   <!-- room -->
 <td>{{ d[1] }}</td>   <!-- issue -->
 
 <td>
+{% if d[6] == 'pending' %}
 <span class="badge bg-danger">Pending</span>
+{% else %}
+<span class="badge bg-success">Resolved</span>
+{% endif %}
 </td>
 
 <td>
+{% if d[6] == 'pending' %}
 <a href="/resolve/{{ d[0] }}" class="btn btn-success btn-sm">Mark Done</a>
+{% else %}
+<span class="text-success fw-bold">✔ Done</span>
+{% endif %}
 </td>
 
 </tr>
