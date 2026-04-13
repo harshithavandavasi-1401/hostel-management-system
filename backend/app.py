@@ -1,16 +1,12 @@
 from flask import Flask, render_template, request, redirect, session
-import os
 import sqlite3
 import bcrypt
+import os
 
-# ---------------- PATH ----------------
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-TEMPLATE_DIR = os.path.join(BASE_DIR, '..', 'templates')
-
-app = Flask(__name__, template_folder=TEMPLATE_DIR)
+app = Flask(__name__)
 app.secret_key = "secret123"
 
-# ---------------- DB (SQLITE) ----------------
+# ---------------- DB ----------------
 db = sqlite3.connect('hostel.db', check_same_thread=False)
 cursor = db.cursor()
 print("🔥 DB READY - SQLITE WORKING")
@@ -54,11 +50,9 @@ CREATE TABLE IF NOT EXISTS helpdesk (
 """)
 
 # default users
-cursor.execute("INSERT OR IGNORE INTO wardens VALUES ('1', '123')")
-cursor.execute("INSERT OR IGNORE INTO workers VALUES ('1', '123')")
-
+cursor.execute("INSERT OR IGNORE INTO wardens VALUES ('1','123')")
+cursor.execute("INSERT OR IGNORE INTO workers VALUES ('1','123')")
 db.commit()
-
 
 # ---------------- HOME ----------------
 @app.route('/')
@@ -73,12 +67,13 @@ def login():
     user_id = request.form['user_id']
     password = request.form['password']
 
+    # -------- STUDENT --------
     if role == 'student':
         cursor.execute("SELECT * FROM students WHERE student_id=?", (user_id,))
         user = cursor.fetchone()
 
         if user:
-            stored_password = user[-1]  # safe last column
+            stored_password = user[-1]
 
             try:
                 if isinstance(stored_password, str):
@@ -90,12 +85,12 @@ def login():
                     return redirect('/student')
 
             except:
-                # fallback for plain text passwords
                 if password == stored_password:
                     session['user'] = user_id
                     session['role'] = 'student'
                     return redirect('/student')
 
+    # -------- WARDEN --------
     elif role == 'warden':
         cursor.execute("SELECT * FROM wardens WHERE warden_id=? AND password=?", (user_id, password))
         if cursor.fetchone():
@@ -103,6 +98,7 @@ def login():
             session['role'] = 'warden'
             return redirect('/warden')
 
+    # -------- WORKER --------
     elif role == 'worker':
         cursor.execute("SELECT * FROM workers WHERE worker_id=? AND password=?", (user_id, password))
         if cursor.fetchone():
@@ -110,25 +106,25 @@ def login():
             session['role'] = 'worker'
             return redirect('/worker')
 
-    return render_template('login.html', error="User not found or incorrect password")
+    return render_template('login.html', error="Invalid credentials")
 
 
 # ---------------- REGISTER ----------------
-@app.route('/register', methods=['GET', 'POST'])
+@app.route('/register', methods=['GET','POST'])
 def register():
     if request.method == 'POST':
-        name = request.form['name']
-        reg = request.form['reg']
-        phone = request.form['phone']
-        room = request.form['room']
-        password = request.form['password']
-
-        hashed_password = bcrypt.hashpw(password.encode(), bcrypt.gensalt())
+        hashed_password = bcrypt.hashpw(request.form['password'].encode(), bcrypt.gensalt())
 
         cursor.execute("""
-            INSERT INTO students (student_id, name, phone, room_no, password)
-            VALUES (?, ?, ?, ?, ?)
-        """, (reg, name, phone, room, hashed_password))
+        INSERT INTO students (student_id, name, phone, room_no, password)
+        VALUES (?, ?, ?, ?, ?)
+        """, (
+            request.form['reg'],
+            request.form['name'],
+            request.form['phone'],
+            request.form['room'],
+            hashed_password
+        ))
 
         db.commit()
         return redirect('/')
@@ -142,68 +138,54 @@ def student():
     if 'user' not in session:
         return redirect('/')
 
-    student_id = session['user']
+    sid = session['user']
 
-    cursor.execute("SELECT name, room_no FROM students WHERE student_id=?", (student_id,))
+    cursor.execute("SELECT name, room_no FROM students WHERE student_id=?", (sid,))
     student = cursor.fetchone()
 
-    cursor.execute("SELECT * FROM helpdesk WHERE student_id=?", (student_id,))
+    if not student:
+        return redirect('/')
+
+    cursor.execute("SELECT * FROM helpdesk WHERE student_id=?", (sid,))
     complaints = cursor.fetchall()
 
     return render_template('student_dashboard.html',
                            complaints=complaints,
                            student_name=student[0],
-                           student_id=student_id,
+                           student_id=sid,
                            room_no=student[1])
 
 
-# ---------------- SUBMIT COMPLAINT ----------------
+# ---------------- SUBMIT ----------------
 @app.route('/submit_complaint', methods=['POST'])
-def submit_complaint():
+def submit():
     if 'user' not in session:
         return redirect('/')
 
-    student_id = session['user']
+    sid = session['user']
 
-    cursor.execute("SELECT room_no FROM students WHERE student_id=?", (student_id,))
-    room_no = cursor.fetchone()[0]
+    cursor.execute("SELECT room_no FROM students WHERE student_id=?", (sid,))
+    data = cursor.fetchone()
 
-    student_name = request.form['student_name']
-    issue_type = request.form['issue_type']
+    if not data:
+        return redirect('/')
+
+    room = data[0]
 
     cursor.execute("""
-        INSERT INTO helpdesk 
-        (issue_type, description, room_no, student_id, student_name, status)
-        VALUES (?, ?, ?, ?, ?, ?)
-    """, (issue_type, "", room_no, student_id, student_name, "pending"))
+    INSERT INTO helpdesk (issue_type, description, room_no, student_id, student_name, status)
+    VALUES (?, ?, ?, ?, ?, ?)
+    """, (
+        request.form['issue_type'],
+        "",
+        room,
+        sid,
+        request.form['student_name'],
+        "pending"
+    ))
 
     db.commit()
     return redirect('/student')
-
-
-# ---------------- DELETE COMPLAINT ----------------
-@app.route('/delete_complaint/<int:complaint_id>')
-def delete_complaint(complaint_id):
-    cursor.execute("""
-        DELETE FROM helpdesk 
-        WHERE complaint_id=? AND status='resolved'
-    """, (complaint_id,))
-    db.commit()
-    return redirect('/warden')
-
-
-# ---------------- RESOLVE ----------------
-@app.route('/resolve/<int:complaint_id>')
-def resolve_complaint(complaint_id):
-    if 'user' not in session:
-        return redirect('/')
-
-    cursor.execute("UPDATE helpdesk SET status='resolved' WHERE complaint_id=?", (complaint_id,))
-    db.commit()
-
-    if session.get('role') == 'worker':
-        return redirect('/worker')
-    return redirect('/warden')
 
 
 # ---------------- WARDEN ----------------
@@ -214,12 +196,6 @@ def warden():
 
     cursor.execute("SELECT * FROM helpdesk")
     complaints = cursor.fetchall()
-
-    cursor.execute("SELECT * FROM students")
-    students = cursor.fetchall()
-
-    cursor.execute("SELECT * FROM workers")
-    workers = cursor.fetchall()
 
     cursor.execute("SELECT COUNT(*) FROM helpdesk")
     total = cursor.fetchone()[0]
@@ -232,8 +208,6 @@ def warden():
 
     return render_template('warden_dashboard.html',
                            complaints=complaints,
-                           students=students,
-                           workers=workers,
                            total=total,
                            pending=pending,
                            resolved=resolved)
@@ -245,16 +219,26 @@ def worker():
     if 'user' not in session:
         return redirect('/')
 
-    worker_id = session['user']
-
-    cursor.execute("""
-        SELECT * FROM helpdesk 
-        WHERE status='pending' AND worker_id=?
-    """, (worker_id,))
-
+    cursor.execute("SELECT * FROM helpdesk WHERE status='pending'")
     data = cursor.fetchall()
 
     return render_template('worker_dashboard.html', data=data)
+
+
+# ---------------- RESOLVE ----------------
+@app.route('/resolve/<int:id>')
+def resolve(id):
+    cursor.execute("UPDATE helpdesk SET status='resolved' WHERE complaint_id=?", (id,))
+    db.commit()
+    return redirect('/warden')
+
+
+# ---------------- DELETE ----------------
+@app.route('/delete_complaint/<int:id>')
+def delete(id):
+    cursor.execute("DELETE FROM helpdesk WHERE complaint_id=? AND status='resolved'", (id,))
+    db.commit()
+    return redirect('/warden')
 
 
 # ---------------- LOGOUT ----------------
@@ -267,4 +251,4 @@ def logout():
 # ---------------- RUN ----------------
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port)
+    app.run(host='0.0.0.0', port=port)
