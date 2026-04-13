@@ -1,6 +1,6 @@
 from flask import Flask, render_template, request, redirect, session
 import os
-import mysql.connector
+import sqlite3
 import bcrypt
 
 # ---------------- PATH ----------------
@@ -10,22 +10,10 @@ TEMPLATE_DIR = os.path.join(BASE_DIR, '..', 'templates')
 app = Flask(__name__, template_folder=TEMPLATE_DIR)
 app.secret_key = "secret123"
 
-# ---------------- DB (SAFE FOR DEPLOY) ----------------
-try:
-    db = mysql.connector.connect(
-        host="127.0.0.1",
-        user="root",
-        password="Harshitha@2006",
-        database="hostel_db",
-        auth_plugin='mysql_native_password'
-    )
-    cursor = db.cursor()
-    print("✅ Connected to MySQL")
-
-except:
-    print("❌ DB connection failed (Render safe mode)")
-    db = None
-    cursor = None
+# ---------------- DB (SQLITE) ----------------
+db = sqlite3.connect('hostel.db', check_same_thread=False)
+cursor = db.cursor()
+print("✅ Connected to SQLite")
 
 
 # ---------------- HOME ----------------
@@ -37,19 +25,17 @@ def home():
 # ---------------- LOGIN ----------------
 @app.route('/login', methods=['POST'])
 def login():
-    if cursor is None:
-        return render_template('login.html', error="Database not connected")
-
     role = request.form['role']
     user_id = request.form['user_id']
     password = request.form['password']
 
     if role == 'student':
-        cursor.execute("SELECT * FROM students WHERE student_id=%s", (user_id,))
+        cursor.execute("SELECT * FROM students WHERE student_id=?", (user_id,))
         user = cursor.fetchone()
 
         if user:
-            stored_password = user[7]
+            stored_password = user[4]  # adjust index if needed
+
             if isinstance(stored_password, str):
                 stored_password = stored_password.encode()
 
@@ -59,14 +45,14 @@ def login():
                 return redirect('/student')
 
     elif role == 'warden':
-        cursor.execute("SELECT * FROM wardens WHERE warden_id=%s AND password=%s", (user_id, password))
+        cursor.execute("SELECT * FROM wardens WHERE warden_id=? AND password=?", (user_id, password))
         if cursor.fetchone():
             session['user'] = user_id
             session['role'] = 'warden'
             return redirect('/warden')
 
     elif role == 'worker':
-        cursor.execute("SELECT * FROM workers WHERE worker_id=%s AND password=%s", (user_id, password))
+        cursor.execute("SELECT * FROM workers WHERE worker_id=? AND password=?", (user_id, password))
         if cursor.fetchone():
             session['user'] = user_id
             session['role'] = 'worker'
@@ -78,9 +64,6 @@ def login():
 # ---------------- REGISTER ----------------
 @app.route('/register', methods=['GET', 'POST'])
 def register():
-    if cursor is None:
-        return "Database not connected"
-
     if request.method == 'POST':
         name = request.form['name']
         reg = request.form['reg']
@@ -88,11 +71,11 @@ def register():
         room = request.form['room']
         password = request.form['password']
 
-        hashed_password = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
+        hashed_password = bcrypt.hashpw(password.encode(), bcrypt.gensalt())
 
         cursor.execute("""
             INSERT INTO students (student_id, name, phone, room_no, password)
-            VALUES (%s, %s, %s, %s, %s)
+            VALUES (?, ?, ?, ?, ?)
         """, (reg, name, phone, room, hashed_password))
 
         db.commit()
@@ -107,15 +90,12 @@ def student():
     if 'user' not in session:
         return redirect('/')
 
-    if cursor is None:
-        return "Database not connected"
-
     student_id = session['user']
 
-    cursor.execute("SELECT name, room_no FROM students WHERE student_id=%s", (student_id,))
+    cursor.execute("SELECT name, room_no FROM students WHERE student_id=?", (student_id,))
     student = cursor.fetchone()
 
-    cursor.execute("SELECT * FROM helpdesk WHERE student_id=%s", (student_id,))
+    cursor.execute("SELECT * FROM helpdesk WHERE student_id=?", (student_id,))
     complaints = cursor.fetchall()
 
     return render_template('student_dashboard.html',
@@ -131,12 +111,9 @@ def submit_complaint():
     if 'user' not in session:
         return redirect('/')
 
-    if cursor is None:
-        return "Database not connected"
-
     student_id = session['user']
 
-    cursor.execute("SELECT room_no FROM students WHERE student_id=%s", (student_id,))
+    cursor.execute("SELECT room_no FROM students WHERE student_id=?", (student_id,))
     room_no = cursor.fetchone()[0]
 
     student_name = request.form['student_name']
@@ -145,7 +122,7 @@ def submit_complaint():
     cursor.execute("""
         INSERT INTO helpdesk 
         (issue_type, description, room_no, student_id, student_name, status)
-        VALUES (%s, %s, %s, %s, %s, %s)
+        VALUES (?, ?, ?, ?, ?, ?)
     """, (issue_type, "", room_no, student_id, student_name, "pending"))
 
     db.commit()
@@ -155,12 +132,9 @@ def submit_complaint():
 # ---------------- DELETE COMPLAINT ----------------
 @app.route('/delete_complaint/<int:complaint_id>')
 def delete_complaint(complaint_id):
-    if cursor is None:
-        return "Database not connected"
-
     cursor.execute("""
         DELETE FROM helpdesk 
-        WHERE complaint_id=%s AND status='resolved'
+        WHERE complaint_id=? AND status='resolved'
     """, (complaint_id,))
     db.commit()
     return redirect('/warden')
@@ -172,10 +146,7 @@ def resolve_complaint(complaint_id):
     if 'user' not in session:
         return redirect('/')
 
-    if cursor is None:
-        return "Database not connected"
-
-    cursor.execute("UPDATE helpdesk SET status='resolved' WHERE complaint_id=%s", (complaint_id,))
+    cursor.execute("UPDATE helpdesk SET status='resolved' WHERE complaint_id=?", (complaint_id,))
     db.commit()
 
     if session.get('role') == 'worker':
@@ -188,9 +159,6 @@ def resolve_complaint(complaint_id):
 def warden():
     if 'user' not in session:
         return redirect('/')
-
-    if cursor is None:
-        return "Database not connected"
 
     cursor.execute("SELECT * FROM helpdesk")
     complaints = cursor.fetchall()
@@ -225,14 +193,11 @@ def worker():
     if 'user' not in session:
         return redirect('/')
 
-    if cursor is None:
-        return "Database not connected"
-
     worker_id = session['user']
 
     cursor.execute("""
         SELECT * FROM helpdesk 
-        WHERE status='pending' AND worker_id=%s
+        WHERE status='pending' AND worker_id=?
     """, (worker_id,))
 
     data = cursor.fetchall()
