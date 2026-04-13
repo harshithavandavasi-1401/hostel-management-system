@@ -13,8 +13,7 @@ app.secret_key = "secret123"
 # ---------------- DB (SQLITE) ----------------
 db = sqlite3.connect('hostel.db', check_same_thread=False)
 cursor = db.cursor()
-print("✅ Connected to SQLite")
-
+print("🔥 DB READY - SQLITE WORKING")
 
 # ---------------- CREATE TABLES ----------------
 cursor.execute("""
@@ -79,15 +78,23 @@ def login():
         user = cursor.fetchone()
 
         if user:
-            stored_password = user[4]  # adjust index if needed
+            stored_password = user[-1]  # safe last column
 
-            if isinstance(stored_password, str):
-                stored_password = stored_password.encode()
+            try:
+                if isinstance(stored_password, str):
+                    stored_password = stored_password.encode()
 
-            if bcrypt.checkpw(password.encode(), stored_password):
-                session['user'] = user_id
-                session['role'] = 'student'
-                return redirect('/student')
+                if bcrypt.checkpw(password.encode(), stored_password):
+                    session['user'] = user_id
+                    session['role'] = 'student'
+                    return redirect('/student')
+
+            except:
+                # fallback for plain text passwords
+                if password == stored_password:
+                    session['user'] = user_id
+                    session['role'] = 'student'
+                    return redirect('/student')
 
     elif role == 'warden':
         cursor.execute("SELECT * FROM wardens WHERE warden_id=? AND password=?", (user_id, password))
