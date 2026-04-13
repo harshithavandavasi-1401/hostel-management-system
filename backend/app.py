@@ -16,6 +16,51 @@ cursor = db.cursor()
 print("✅ Connected to SQLite")
 
 
+# ---------------- CREATE TABLES ----------------
+cursor.execute("""
+CREATE TABLE IF NOT EXISTS students (
+    student_id TEXT PRIMARY KEY,
+    name TEXT,
+    phone TEXT,
+    room_no TEXT,
+    password TEXT
+)
+""")
+
+cursor.execute("""
+CREATE TABLE IF NOT EXISTS wardens (
+    warden_id TEXT PRIMARY KEY,
+    password TEXT
+)
+""")
+
+cursor.execute("""
+CREATE TABLE IF NOT EXISTS workers (
+    worker_id TEXT PRIMARY KEY,
+    password TEXT
+)
+""")
+
+cursor.execute("""
+CREATE TABLE IF NOT EXISTS helpdesk (
+    complaint_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    issue_type TEXT,
+    description TEXT,
+    room_no TEXT,
+    student_id TEXT,
+    student_name TEXT,
+    status TEXT,
+    worker_id TEXT
+)
+""")
+
+# default users
+cursor.execute("INSERT OR IGNORE INTO wardens VALUES ('1', '123')")
+cursor.execute("INSERT OR IGNORE INTO workers VALUES ('1', '123')")
+
+db.commit()
+
+
 # ---------------- HOME ----------------
 @app.route('/')
 def home():
