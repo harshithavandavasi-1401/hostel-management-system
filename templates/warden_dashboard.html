@@ -230,7 +230,7 @@
 {% if c[5] == 'pending' %}
 <a href="/resolve/{{ c[0] }}" class="btn btn-success btn-sm">Resolve</a>
 {% else %}
-Done
+<a href="/delete_complaint/{{ c[0] }}" class="btn btn-danger btn-sm">Delete</a>
 {% endif %}
 </td>
 

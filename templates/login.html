@@ -7,8 +7,8 @@
 
 <body class="bg-primary d-flex justify-content-center align-items-center vh-100">
 
-<div class="card p-4">
-<h3>Hostel Login</h3>
+<div class="card p-4 shadow" style="width: 300px;">
+<h3 class="text-center mb-3">Hostel Login</h3>
 
 <form action="/login" method="POST">
 
@@ -18,16 +18,32 @@
 <option value="worker">Worker</option>
 </select>
 
-<input name="user_id" class="form-control mb-2" placeholder="ID">
-<input name="password" type="password" class="form-control mb-2" placeholder="Password">
+<input name="user_id" class="form-control mb-2" placeholder="ID" required>
+<input name="password" type="password" class="form-control mb-2" placeholder="Password" required>
 
 <button class="btn btn-dark w-100">Login</button>
+
+{% if error %}
+<div class="alert alert-danger text-center mt-2">
+    {{ error }}
+</div>
+{% endif %}
 
 </form>
 
 <a href="/register" class="btn btn-success w-100 mt-2">
 New Student? Register
 </a>
+
+<!-- DEMO LOGIN INFO -->
+<div class="text-center mt-3 text-muted">
+<small>
+<b>Demo Login:</b><br>
+Warden → ID: <b>1</b> | Password: <b>123</b><br>
+Worker → ID: <b>1</b> | Password: <b>123</b><br>
+Student → Register first, then login
+</small>
+</div>
 
 </div>
 
