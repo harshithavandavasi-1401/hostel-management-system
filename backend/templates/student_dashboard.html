@@ -15,6 +15,27 @@
 
 <div class="container mt-4">
 
+<!-- STUDENT DETAILS -->
+<div class="card shadow p-4 mb-4">
+<h4 class="mb-3">Your Details</h4>
+
+<table class="table table-bordered">
+<tr>
+<th>Name</th>
+<td>{{ student_name }}</td>
+</tr>
+<tr>
+<th>ID</th>
+<td>{{ student_id }}</td>
+</tr>
+<tr>
+<th>Room</th>
+<td>{{ room_no }}</td>
+</tr>
+</table>
+
+</div>
+
 <!-- RAISE COMPLAINT -->
 <div class="card shadow p-4 mb-4">
 <h4 class="mb-3">Raise Complaint</h4>
@@ -60,6 +81,8 @@
 
 <tbody>
 
+{% if complaints and complaints|length > 0 %}
+
 {% for c in complaints %}
 <tr>
 <td>{{ c[3] }}</td>   <!-- room_no -->
@@ -75,6 +98,16 @@
 
 </tr>
 {% endfor %}
+
+{% else %}
+
+<tr>
+<td colspan="3" class="text-center text-muted">
+No complaints raised yet
+</td>
+</tr>
+
+{% endif %}
 
 </tbody>
 

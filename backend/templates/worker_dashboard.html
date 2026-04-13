@@ -15,9 +15,31 @@
 
 <div class="container mt-4">
 
+<!-- SUMMARY -->
+<div class="row mb-4">
+<div class="col-md-6">
+<div class="card bg-danger text-white text-center shadow">
+<div class="card-body">
+<h5>Pending Complaints</h5>
+<h3>{{ data|length }}</h3>
+</div>
+</div>
+</div>
+
+<div class="col-md-6">
+<div class="card bg-success text-white text-center shadow">
+<div class="card-body">
+<h5>Status</h5>
+<h3>Active</h3>
+</div>
+</div>
+</div>
+</div>
+
+<!-- ASSIGNED COMPLAINTS -->
 <h4 class="mb-3">🛠 Assigned Complaints</h4>
 
-<div class="card shadow">
+<div class="card shadow mb-4">
 <div class="card-body">
 
 <div class="table-responsive">
@@ -36,12 +58,14 @@
 
 <tbody>
 
+{% if data and data|length > 0 %}
+
 {% for d in data %}
 <tr>
 
-<td>{{ d[5] }}</td>   <!-- student_name -->
-<td>{{ d[3] }}</td>   <!-- room -->
-<td>{{ d[1] }}</td>   <!-- issue -->
+<td>{{ d[5] }}</td>
+<td>{{ d[3] }}</td>
+<td>{{ d[1] }}</td>
 
 <td>
 {% if d[6] == 'pending' %}
@@ -61,6 +85,68 @@
 
 </tr>
 {% endfor %}
+
+{% else %}
+
+<tr>
+<td colspan="5" class="text-center text-muted">
+No complaints assigned
+</td>
+</tr>
+
+{% endif %}
+
+</tbody>
+
+</table>
+
+</div>
+
+</div>
+</div>
+
+<!-- COMPLETED COMPLAINTS -->
+<div class="card shadow">
+<div class="card-body">
+
+<h4>✅ Completed Complaints</h4>
+
+<div class="table-responsive">
+
+<table class="table table-bordered table-hover">
+
+<thead class="table-dark">
+<tr>
+<th>Name</th>
+<th>Room</th>
+<th>Issue</th>
+<th>Status</th>
+</tr>
+</thead>
+
+<tbody>
+
+{% set found = false %}
+
+{% for d in data %}
+{% if d[6] == 'resolved' %}
+{% set found = true %}
+<tr>
+<td>{{ d[5] }}</td>
+<td>{{ d[3] }}</td>
+<td>{{ d[1] }}</td>
+<td><span class="badge bg-success">Resolved</span></td>
+</tr>
+{% endif %}
+{% endfor %}
+
+{% if not found %}
+<tr>
+<td colspan="4" class="text-center text-muted">
+No completed complaints
+</td>
+</tr>
+{% endif %}
 
 </tbody>
 

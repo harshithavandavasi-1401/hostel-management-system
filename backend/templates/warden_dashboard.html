@@ -58,7 +58,7 @@
 </div>
 
 <div class="col-md-4">
-<input class="form-control mb-2" name="reg" placeholder="Registration Number" required>
+<input class="form-control mb-2" name="student_id" placeholder="Registration Number" required>
 </div>
 
 <div class="col-md-4">
@@ -66,11 +66,11 @@
 </div>
 
 <div class="col-md-4">
-<input class="form-control mb-2" name="father" placeholder="Father Name">
+<input class="form-control mb-2" name="room" placeholder="Room" required>
 </div>
 
 <div class="col-md-4">
-<input class="form-control mb-2" name="room" placeholder="Room" required>
+<input class="form-control mb-2" name="password" placeholder="Password" required>
 </div>
 
 </div>
@@ -88,15 +88,11 @@
 <form action="/add_worker" method="POST">
 <div class="row">
 
-<div class="col-md-4">
-<input class="form-control mb-2" name="name" placeholder="Worker Name" required>
-</div>
-
-<div class="col-md-4">
+<div class="col-md-6">
 <input class="form-control mb-2" name="worker_id" placeholder="Worker ID" required>
 </div>
 
-<div class="col-md-4">
+<div class="col-md-6">
 <input class="form-control mb-2" name="password" placeholder="Password" required>
 </div>
 
@@ -141,7 +137,6 @@
 </div>
 </div>
 
-
 <!-- WORKERS -->
 <div class="card shadow mb-4">
 <div class="card-body">
@@ -152,7 +147,6 @@
 <thead class="table-dark">
 <tr>
 <th>ID</th>
-<th>Name</th>
 <th>Password</th>
 <th>Action</th>
 </tr>
@@ -164,7 +158,6 @@
 <tr>
 <td>{{ w[0] }}</td>
 <td>{{ w[1] }}</td>
-<td>{{ w[2] }}</td>
 <td>
 <a href="/delete_worker/{{ w[0] }}" class="btn btn-danger btn-sm">Delete</a>
 </td>
@@ -205,7 +198,7 @@
 <td>{{ c[1] }}</td>
 
 <td>
-{% if c[5] == 'pending' %}
+{% if c[6] == 'pending' %}
 <span class="badge bg-danger">Pending</span>
 {% else %}
 <span class="badge bg-success">Resolved</span>
@@ -218,7 +211,7 @@
 
 <select name="worker_id" class="form-select form-select-sm">
 {% for w in workers %}
-<option value="{{ w[0] }}">{{ w[1] }}</option>
+<option value="{{ w[0] }}">{{ w[0] }}</option>
 {% endfor %}
 </select>
 
@@ -227,7 +220,7 @@
 </td>
 
 <td>
-{% if c[5] == 'pending' %}
+{% if c[6] == 'pending' %}
 <a href="/resolve/{{ c[0] }}" class="btn btn-success btn-sm">Resolve</a>
 {% else %}
 <a href="/delete_complaint/{{ c[0] }}" class="btn btn-danger btn-sm">Delete</a>

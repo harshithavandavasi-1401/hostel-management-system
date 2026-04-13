@@ -211,23 +211,24 @@ def submit():
 # ---------------- WARDEN ----------------
 @app.route('/warden')
 def warden():
+    # complaints
     cursor.execute("SELECT * FROM helpdesk")
     complaints = cursor.fetchall()
 
-    cursor.execute("SELECT COUNT(*) FROM helpdesk")
-    total = cursor.fetchone()[0]
+    # students
+    cursor.execute("SELECT * FROM students")
+    students = cursor.fetchall()
 
-    cursor.execute("SELECT COUNT(*) FROM helpdesk WHERE status='pending'")
-    pending = cursor.fetchone()[0]
+    # workers
+    cursor.execute("SELECT * FROM workers")
+    workers = cursor.fetchall()
 
-    cursor.execute("SELECT COUNT(*) FROM helpdesk WHERE status='resolved'")
-    resolved = cursor.fetchone()[0]
-
-    return render_template('warden_dashboard.html',
-                           complaints=complaints,
-                           total=total,
-                           pending=pending,
-                           resolved=resolved)
+    return render_template(
+        'warden_dashboard.html',
+        complaints=complaints,
+        students=students,
+        workers=workers
+    )
 
 
 # ---------------- WORKER ----------------
