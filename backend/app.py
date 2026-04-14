@@ -139,23 +139,22 @@ def add_worker():
     return redirect('/warden')
 
 # ---------------- REGISTER ----------------
-@app.route('/register', methods=['GET','POST'])
+@app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
-        hashed_password = bcrypt.hashpw(request.form['password'].encode(), bcrypt.gensalt())
+        name = request.form['name']
+        student_id = request.form['student_id']
+        phone = request.form['phone']
+        room = request.form['room']
+        password = request.form['password']
 
         cursor.execute("""
-        INSERT INTO students (student_id, name, phone, room_no, password)
+        INSERT INTO students (id, name, phone, room, password)
         VALUES (?, ?, ?, ?, ?)
-        """, (
-            request.form['reg'],
-            request.form['name'],
-            request.form['phone'],
-            request.form['room'],
-            hashed_password
-        ))
+        """, (student_id, name, phone, room, password))
 
         db.commit()
+
         return redirect('/')
 
     return render_template('register.html')
