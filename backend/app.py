@@ -223,9 +223,32 @@ def warden():
 # ---------------- WORKER ----------------
 @app.route('/worker')
 def worker():
-    cursor.execute("SELECT * FROM helpdesk WHERE status='pending'")
+    wid = session['user']
+
+    cursor.execute("""
+    SELECT * FROM helpdesk
+    WHERE worker_id = ?
+    """, (wid,))
+
     data = cursor.fetchall()
+
     return render_template('worker_dashboard.html', data=data)
+
+
+@app.route('/assign_worker', methods=['POST'])
+def assign_worker():
+    complaint_id = request.form['complaint_id']
+    worker_id = request.form['worker_id']
+
+    cursor.execute("""
+    UPDATE helpdesk
+    SET worker_id = ?
+    WHERE complaint_id = ?
+    """, (worker_id, complaint_id))
+
+    db.commit()
+
+    return redirect('/warden')
 
 # ---------------- RESOLVE ----------------
 @app.route('/resolve/<int:id>')
