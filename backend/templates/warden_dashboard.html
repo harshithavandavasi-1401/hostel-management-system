@@ -88,11 +88,15 @@
 <form action="/add_worker" method="POST">
 <div class="row">
 
-<div class="col-md-6">
+<div class="col-md-4">
+<input class="form-control mb-2" name="name" placeholder="Worker Name" required>
+</div>
+
+<div class="col-md-4">
 <input class="form-control mb-2" name="worker_id" placeholder="Worker ID" required>
 </div>
 
-<div class="col-md-6">
+<div class="col-md-4">
 <input class="form-control mb-2" name="password" placeholder="Password" required>
 </div>
 
@@ -147,6 +151,7 @@
 <thead class="table-dark">
 <tr>
 <th>ID</th>
+<th>Name</th>
 <th>Password</th>
 <th>Action</th>
 </tr>
@@ -158,6 +163,7 @@
 <tr>
 <td>{{ w[0] }}</td>
 <td>{{ w[1] }}</td>
+<td>{{ w[2] }}</td>
 <td>
 <a href="/delete_worker/{{ w[0] }}" class="btn btn-danger btn-sm">Delete</a>
 </td>
@@ -211,7 +217,7 @@
 
 <select name="worker_id" class="form-select form-select-sm">
 {% for w in workers %}
-<option value="{{ w[0] }}">{{ w[0] }}</option>
+<option value="{{ w[0] }}">{{ w[1] }}</option>
 {% endfor %}
 </select>
 
