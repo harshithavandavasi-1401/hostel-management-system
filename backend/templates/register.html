@@ -12,13 +12,17 @@
 
 <h4>Student Registration</h4>
 
-<form method="POST">
+<form method="POST" action="/register">
 
 <input class="form-control mb-2" name="name" placeholder="Name" required>
-<input class="form-control mb-2" name="reg" placeholder="Registration Number" required>
+
+<input class="form-control mb-2" name="student_id" placeholder="Registration Number" required>
+
 <input class="form-control mb-2" name="phone" placeholder="Phone">
+
 <input class="form-control mb-2" name="room" placeholder="Room Number" required>
-<input class="form-control mb-2" name="password" placeholder="Password" type="password" required>
+
+<input class="form-control mb-2" name="password" type="password" placeholder="Password" required>
 
 <button class="btn btn-primary w-100">Register</button>
 

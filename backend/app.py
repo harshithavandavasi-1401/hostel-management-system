@@ -33,7 +33,6 @@ CREATE TABLE IF NOT EXISTS wardens (
 )
 """)
 
-# ✅ FIXED (added name column)
 cursor.execute("""
 CREATE TABLE IF NOT EXISTS workers (
     worker_id TEXT PRIMARY KEY,
@@ -76,21 +75,10 @@ def login():
         user = cursor.fetchone()
 
         if user:
-            stored_password = user[-1]
-
-            try:
-                if isinstance(stored_password, str):
-                    stored_password = stored_password.encode()
-
-                if bcrypt.checkpw(password.encode(), stored_password):
-                    session['user'] = user_id
-                    session['role'] = 'student'
-                    return redirect('/student')
-            except:
-                if password == stored_password:
-                    session['user'] = user_id
-                    session['role'] = 'student'
-                    return redirect('/student')
+            if password == user[4]:
+                session['user'] = user_id
+                session['role'] = 'student'
+                return redirect('/student')
 
     elif role == 'warden':
         cursor.execute("SELECT * FROM wardens WHERE warden_id=? AND password=?", (user_id, password))
@@ -107,6 +95,30 @@ def login():
             return redirect('/worker')
 
     return render_template('login.html', error="Invalid credentials")
+
+# ---------------- REGISTER (FIXED) ----------------
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    if request.method == 'POST':
+        name = request.form.get('name')
+        student_id = request.form.get('student_id')
+        phone = request.form.get('phone')
+        room = request.form.get('room')
+        password = request.form.get('password')
+
+        if not name or not student_id or not room or not password:
+            return "Missing fields", 400
+
+        cursor.execute("""
+        INSERT INTO students (student_id, name, phone, room_no, password)
+        VALUES (?, ?, ?, ?, ?)
+        """, (student_id, name, phone, room, password))
+
+        db.commit()
+
+        return redirect('/')
+
+    return render_template('register.html')
 
 # ---------------- ADD STUDENT ----------------
 @app.route('/add_student', methods=['POST'])
@@ -137,27 +149,6 @@ def add_worker():
     ))
     db.commit()
     return redirect('/warden')
-
-# ---------------- REGISTER ----------------
-@app.route('/register', methods=['GET', 'POST'])
-def register():
-    if request.method == 'POST':
-        name = request.form['name']
-        student_id = request.form['student_id']
-        phone = request.form['phone']
-        room = request.form['room']
-        password = request.form['password']
-
-        cursor.execute("""
-        INSERT INTO students (id, name, phone, room, password)
-        VALUES (?, ?, ?, ?, ?)
-        """, (student_id, name, phone, room, password))
-
-        db.commit()
-
-        return redirect('/')
-
-    return render_template('register.html')
 
 # ---------------- STUDENT ----------------
 @app.route('/student')
@@ -224,29 +215,21 @@ def warden():
 def worker():
     wid = session['user']
 
-    cursor.execute("""
-    SELECT * FROM helpdesk
-    WHERE worker_id = ?
-    """, (wid,))
-
+    cursor.execute("SELECT * FROM helpdesk WHERE worker_id=?", (wid,))
     data = cursor.fetchall()
 
     return render_template('worker_dashboard.html', data=data)
 
-
+# ---------------- ASSIGN ----------------
 @app.route('/assign_worker', methods=['POST'])
 def assign_worker():
-    complaint_id = request.form['complaint_id']
-    worker_id = request.form['worker_id']
-
     cursor.execute("""
-    UPDATE helpdesk
-    SET worker_id = ?
-    WHERE complaint_id = ?
-    """, (worker_id, complaint_id))
-
+    UPDATE helpdesk SET worker_id=? WHERE complaint_id=?
+    """, (
+        request.form['worker_id'],
+        request.form['complaint_id']
+    ))
     db.commit()
-
     return redirect('/warden')
 
 # ---------------- RESOLVE ----------------
@@ -256,23 +239,19 @@ def resolve(id):
     db.commit()
     return redirect('/warden')
 
-# ---------------- DELETE ROUTES ----------------
-
-# ✅ delete student
+# ---------------- DELETE ----------------
 @app.route('/delete_student/<student_id>')
 def delete_student(student_id):
     cursor.execute("DELETE FROM students WHERE student_id=?", (student_id,))
     db.commit()
     return redirect('/warden')
 
-# ✅ delete worker
 @app.route('/delete_worker/<worker_id>')
 def delete_worker(worker_id):
     cursor.execute("DELETE FROM workers WHERE worker_id=?", (worker_id,))
     db.commit()
     return redirect('/warden')
 
-# ✅ delete complaint
 @app.route('/delete_complaint/<int:id>')
 def delete_complaint(id):
     cursor.execute("DELETE FROM helpdesk WHERE complaint_id=?", (id,))
